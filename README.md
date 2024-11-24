@@ -15,3 +15,6 @@ I will not be providing support as this is a simple drag and drop (only tested o
 I've made 3 showcase videos of my testing and updates it works for me just fine.
 
 I recommend using FPS at the lowest value or completely removing it and using the CHECK_INTERVAL = 1500 in the code for best performance across all clients but, do as you please.
+
+
+RENAME FILE TO nearest-postal AND MAKE SURE 0xludb-fivem IS STARTED IN YOUR SERVER.CFG BEFORE nearest-postal.
