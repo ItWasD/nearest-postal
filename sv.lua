@@ -9,21 +9,12 @@ CreateThread(function()
     end
 end)
 
---                                                     ( The fallback may not be necesarry but it prevents crashes on the client side still allowing the player to use the 
-local function getSanitizedPlayerLicense(playerId)   -- UI with their saved settings, in case they manage to break something. This creates a unique license to that player.)
-    local license = nil
-    local allIdentifiers = GetPlayerIdentifiers(playerId)
-    for _, identifier in ipairs(allIdentifiers) do
-        if identifier:find("license2:") then
-            license = identifier
-            break
-        end
-    end
-
+--The fallback may not be necesarry but it prevents crashes on the client side still allowing the player to use the UI with their saved settings. This creates a unique license to that player.)
+local function getSanitizedPlayerLicense(playerId)
+    local license = GetPlayerIdentifierByType(playerId, "license2")
     if not license then
-        return "unknown_license_" .. playerId
+        return "unknown_license_" .. playerId -- Fallback
     end
-
     local dbLicense = exports.oxmysql:scalarSync('SELECT license FROM players WHERE license = ?', { license })
     if dbLicense then
         return dbLicense:gsub("[:]", "_")
