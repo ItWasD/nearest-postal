@@ -1,4 +1,4 @@
-This is based off of the original near-postal script as it still functions the same I just made it use less client files. 
+This is based off of the original nearest-postal script as it still functions the same I just made it use less client files. 
 
 If you are a developer and are making a new postal map use the Original https://github.com/DevBlocky/nearest-postal as I have removed the main files to do so. 
 
