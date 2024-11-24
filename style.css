@@ -1,0 +1,39 @@
+#postal-container {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    background: rgba(0, 0, 0, 0.432);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    z-index: 1000;
+    cursor: grab;
+    text-align: center;
+    user-select: none;
+}
+
+#postal-container:active {
+    cursor: grabbing;
+}
+
+.postal {
+    font-weight: bold;
+}
+
+.postal-code {
+    color: #37b24d;
+}
+
+.distance {
+    color: #228be6;
+}
+
+.parenthesis {
+    color: #ffffff;
+}
+
+.gps-label {
+    color: #ffffff;
+}
