@@ -204,6 +204,19 @@ CreateThread(function()
     end
 end)
 
+RegisterNetEvent('nearest-postal:toggleUI', function()
+    local uiHidden = GetResourceKvpString('postalUIHidden') == 'true'
+    if uiHidden then
+        SendNUIMessage({ type = 'show' })
+        SetResourceKvp('postalUIHidden', 'false')
+        lib.notify({ title = 'Postal UI', description = 'The Postal UI is now visible.', type = 'success' })
+    else
+        SendNUIMessage({ type = 'hide' })
+        SetResourceKvp('postalUIHidden', 'true')
+        lib.notify({ title = 'Postal UI', description = 'The Postal UI is now hidden.', type = 'error' })
+    end
+end)
+
 exports('hideUI', function()
     SendNUIMessage({ type = 'hide' })
 end)
