@@ -78,3 +78,13 @@ RegisterNetEvent('nearest-postal:savePreferences', function(preferences)
     local playerId = source
     savePreferences(playerId, preferences)
 end)
+
+lib.addCommand('togglepu', {
+    help = 'Toggles the Postal UI visibility',
+}, function(source, args, rawCommand)
+    if source == 0 then
+        print('[Postal UI] This command must be executed by a player.')
+        return
+    end
+    TriggerClientEvent('nearest-postal:toggleUI', source)
+end)
