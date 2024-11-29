@@ -5,49 +5,17 @@ local preferences = nil
 local CHECK_INTERVAL = 1500
 local isPlayerLoaded = false
 local lastPostalCode, lastDistance = nil, nil
-
+local uiHidden = false
+local uiHiddenForPause = false
 
 CreateThread(function()
-    while not isPlayerLoaded do
+    repeat
+        Wait(1000)
         if NetworkIsPlayerActive(PlayerId()) and GetEntityCoords(PlayerPedId(), false) ~= vector3(0, 0, 0) then
             isPlayerLoaded = true
             TriggerServerEvent('nearest-postal:loadPreferences')
         end
-        Wait(1000)
-    end
-end)
-
-RegisterNetEvent('nearest-postal:receivePreferences', function(serverPreferences)
-    if serverPreferences then
-        preferences = serverPreferences
-        CHECK_INTERVAL = preferences.updateInterval
-        SendNUIMessage({ type = 'loadPreferences', preferences = preferences })
-    end
-end)
-
-local function savePreferences()
-    if preferences then
-        TriggerServerEvent('nearest-postal:savePreferences', preferences)
-    end
-end
-
-RegisterNUICallback('savePosition', function(data)
-    if preferences then
-        preferences.position = data.position
-        savePreferences()
-    end
-end)
-
-RegisterNUICallback('toggleCursor', function(data)
-    cursorEnabled = data.enabled
-    SetNuiFocus(cursorEnabled, cursorEnabled)
-end)
-
-RegisterNUICallback('closeUI', function()
-    cursorEnabled = false
-    SetNuiFocus(false, false)
-    SendNUIMessage({ type = 'toggleCursor', enabled = false })
-    lib.notify({ title = 'Postal UI', description = 'Cursor deactivated.', type = 'info' })
+    until isPlayerLoaded
 end)
 
 local function findNearestPostal(playerCoords)
@@ -62,49 +30,109 @@ local function findNearestPostal(playerCoords)
     return nearestPostal, nearestDistance
 end
 
-CreateThread(function()
-    while true do
-        if isPlayerLoaded and preferences then
-            local playerCoords = GetEntityCoords(PlayerPedId())
-            local nearestPostal, distance = findNearestPostal(playerCoords)
+local function updatePostalInfo()
+    if not (isPlayerLoaded and preferences) then return end
 
-            if nearestPostal and (lastPostalCode ~= nearestPostal.code or math.abs(lastDistance - distance) > 1) then
-                lastPostalCode = nearestPostal.code
-                lastDistance = distance
-                local displayDistance = preferences.distanceUnit == 'feet' and (distance * 3.28084) or distance
-                local unit = preferences.distanceUnit == 'feet' and 'ft' or 'm'
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local nearestPostal, distance = findNearestPostal(playerCoords)
 
-                SendNUIMessage({
-                    type = 'updatePostal',
-                    postal = nearestPostal.code,
-                    distance = string.format('%.2f %s', displayDistance, unit)
-                })
+    if nearestPostal and (lastPostalCode ~= nearestPostal.code or math.abs(lastDistance - distance) > 1) then
+        lastPostalCode = nearestPostal.code
+        lastDistance = distance
+        local displayDistance = preferences.distanceUnit == 'feet' and (distance * 3.28084) or distance
+        local unit = preferences.distanceUnit == 'feet' and 'ft' or 'm'
+
+        SendNUIMessage({
+            type = 'updatePostal',
+            postal = nearestPostal.code,
+            distance = string.format('%.2f %s', displayDistance, unit)
+        })
+    end
+
+    if pBlip and pBlipCoords then
+        local distToBlip = #(playerCoords - pBlipCoords)
+        if distToBlip < 50.0 then
+            if DoesBlipExist(pBlip) then
+                SetBlipRoute(pBlip, false)
+                RemoveBlip(pBlip)
             end
-
-            if pBlip and pBlipCoords then
-                local distToBlip = #(playerCoords - pBlipCoords)
-                if distToBlip < 50.0 then
-                    if DoesBlipExist(pBlip) then
-                        SetBlipRoute(pBlip, false)
-                        RemoveBlip(pBlip)
-                    end
-                    pBlip, pBlipCoords = nil, nil
-                end
-            end
+            pBlip, pBlipCoords = nil, nil
         end
-        Wait(CHECK_INTERVAL)
+    end
+
+    SetTimeout(CHECK_INTERVAL, updatePostalInfo)
+end
+
+RegisterNetEvent('nearest-postal:receivePreferences', function(serverPreferences, isVisible)
+    if serverPreferences then
+        preferences = serverPreferences
+        CHECK_INTERVAL = preferences.updateInterval
+        SendNUIMessage({ type = 'loadPreferences', preferences = preferences })
+
+        uiHidden = not isVisible
+        if uiHidden then
+            SendNUIMessage({ type = 'hide' })
+        else
+            SendNUIMessage({ type = 'show' })
+        end
+
+        updatePostalInfo()
     end
 end)
 
-RegisterCommand('postalmenu', function()
+local function savePreferences()
+    if preferences then
+        TriggerServerEvent('nearest-postal:savePreferences', preferences)
+    end
+end
+
+RegisterNUICallback('savePosition', function(data, cb)
+    if preferences then
+        preferences.position = data.position
+        savePreferences()
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('toggleCursor', function(data)
+    cursorEnabled = data.enabled
+    SetNuiFocus(cursorEnabled, cursorEnabled)
+end)
+
+RegisterNUICallback('closeUI', function(_, cb)
+    SetNuiFocus(false, false)
+    SendNUIMessage({ type = 'toggleCursor', enabled = false })
+    lib.notify({ title = 'Postal UI', description = 'Cursor deactivated.', type = 'info' })
+    cb('ok')
+end)
+
+local function saveToggleState()
+    TriggerServerEvent('nearest-postal:savePreferences', preferences, not uiHidden)
+end
+
+RegisterNetEvent('nearest-postal:toggleVisibility', function()
+    uiHidden = not uiHidden
+
+    if uiHidden then
+        SendNUIMessage({ type = 'hide' })
+        lib.notify({ title = 'Postal UI', description = 'Postal UI is now hidden.', type = 'error' })
+    else
+        SendNUIMessage({ type = 'show' })
+        lib.notify({ title = 'Postal UI', description = 'Postal UI is now visible.', type = 'success' })
+    end
+
+    saveToggleState()
+end)
+
+RegisterNetEvent('nearest-postal:openMenu', function()
     if not preferences then return end
 
     local input = lib.inputDialog('Postal UI Settings', {
-        { type = 'slider', label = 'Update Interval (FPS)', default = math.floor(1000 / preferences.updateInterval), min = 1, max = 60, step = 1 },
+        { type = 'slider', label = 'FPS (Lower is Recommended)', default = math.floor(1000 / preferences.updateInterval), min = 1, max = 60, step = 1 },
         { type = 'slider', label = 'Font Size', default = preferences.fontSize, min = 8, max = 30, step = 1 },
         { type = 'color', label = 'Postal Text Color', default = tostring(preferences.postalTextColor), format = 'rgba' },
         { type = 'color', label = 'Distance Text Color', default = tostring(preferences.distanceColor), format = 'rgba' },
-        { type = 'color', label = 'GPS Parenthesis Color', default = tostring(preferences.gpsParenthesisColor), format = 'rgba' },
+        { type = 'color', label = 'Postal & Parenthesis Color', default = tostring(preferences.gpsParenthesisColor), format = 'rgba' },
         { type = 'color', label = 'Background Color', default = tostring(preferences.backgroundColor), format = 'rgba' },
         { type = 'select', label = 'Distance Unit', options = { { value = 'meters', label = 'Meters' }, { value = 'feet', label = 'Feet' } }, default = preferences.distanceUnit },
         { type = 'checkbox', label = 'Enable Cursor for Dragging', checked = cursorEnabled },
@@ -135,26 +163,25 @@ RegisterCommand('postalmenu', function()
             distanceUnit = preferences.distanceUnit
         })
     end
-end, false)
+end)
 
-RegisterCommand('postal', function(_, args)
-    if not isPlayerLoaded then
-        lib.notify({ title = 'Postal UI', description = 'Player not fully loaded yet. Please wait.', type = 'error' })
+RegisterNetEvent('nearest-postal:clearRoute', function()
+    if pBlip then
+        RemoveBlip(pBlip)
+        pBlip = nil
+        lib.notify({ title = 'Postal UI', description = 'GPS route cleared.', type = 'info' })
+    else
+        lib.notify({ title = 'Postal UI', description = 'No GPS route to clear.', type = 'warning' })
+    end
+end)
+
+RegisterNetEvent('nearest-postal:setGPS', function(postalCode)
+    if not postals then
+        lib.notify({ title = 'Postal UI', description = 'Postal data is missing. Please reload the resource.', type = 'error' })
         return
     end
 
-    if #args < 1 then
-        if pBlip then
-            RemoveBlip(pBlip)
-            pBlip = nil
-            lib.notify({ title = 'Postal UI', description = 'GPS route cleared.', type = 'info' })
-        else
-            lib.notify({ title = 'Postal UI', description = 'No GPS route to clear.', type = 'warning' })
-        end
-        return
-    end
-
-    local userPostal = string.upper(args[1])
+    local userPostal = string.upper(postalCode)
     local foundPostal = nil
 
     for _, postal in ipairs(postals) do
@@ -182,45 +209,28 @@ RegisterCommand('postal', function(_, args)
 
         lib.notify({ title = 'Postal UI', description = string.format('GPS route set to postal %s.', foundPostal.code), type = 'success' })
     else
-        lib.notify({ title = 'Postal UI', description = 'Invalid postal code.', type = 'error' })
+        lib.notify({ title = 'Postal UI', description = 'Invalid postal code provided.', type = 'error' })
     end
-end, false)
+end)
 
-CreateThread(function()
-    local uiHidden = false
-    while true do
-        Wait(100)
-        if IsPauseMenuActive() then
-            if not uiHidden then
-                SendNUIMessage({ type = 'hide' })
-                uiHidden = true
-            end
-        else
-            if uiHidden then
-                SendNUIMessage({ type = 'show' })
-                uiHidden = false
-            end
+local function checkPauseMenu()
+    if IsPauseMenuActive() then
+        if not uiHiddenForPause then
+            SendNUIMessage({ type = 'hide' })
+            uiHiddenForPause = true
+        end
+    else
+        if uiHiddenForPause then
+            SendNUIMessage({ type = 'show' })
+            uiHiddenForPause = false
         end
     end
-end)
 
-RegisterNetEvent('nearest-postal:toggleUI', function()
-    local uiHidden = GetResourceKvpString('postalUIHidden') == 'true'
-    if uiHidden then
-        SendNUIMessage({ type = 'show' })
-        SetResourceKvp('postalUIHidden', 'false')
-        lib.notify({ title = 'Postal UI', description = 'The Postal UI is now visible.', type = 'success' })
-    else
-        SendNUIMessage({ type = 'hide' })
-        SetResourceKvp('postalUIHidden', 'true')
-        lib.notify({ title = 'Postal UI', description = 'The Postal UI is now hidden.', type = 'error' })
-    end
-end)
+    SetTimeout(200, checkPauseMenu)
+end
 
-exports('hideUI', function()
-    SendNUIMessage({ type = 'hide' })
-end)
+checkPauseMenu()
 
-exports('showUI', function()
-    SendNUIMessage({ type = 'show' })
-end)
+exports('hideUI', function() SendNUIMessage({ type = 'hide' }) end)
+
+exports('showUI', function() SendNUIMessage({ type = 'show' }) end)
