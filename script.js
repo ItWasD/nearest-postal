@@ -11,15 +11,15 @@ window.addEventListener('message', (event) => {
             fontSize = 12,
             postalTextColor = '#37b24d',
             distanceColor = '#228be6',
-            gpsParenthesisColor = '##ffffff',
-            backgroundColor = 'rgba(0, 0, 0, 0.432)',
+            gpsParenthesisColor = '#ffffff',
+            backgroundColor = 'rgba(0, 0, 0, 0.75)',
             position = { left: 50, top: 50 }
         } = data.preferences || {};
 
         container.style.fontSize = `${fontSize}px`;
         container.style.backgroundColor = backgroundColor;
-        container.style.left = `${position.left}px`;
-        container.style.top = `${position.top}px`;
+        container.style.left = `${Math.round(position.left)}px`; // Ensure integers
+        container.style.top = `${Math.round(position.top)}px`;
 
         const postalCode = document.querySelector('.postal-code');
         const distance = document.querySelector('.distance');
@@ -28,6 +28,11 @@ window.addEventListener('message', (event) => {
         postalCode.style.color = postalTextColor;
         distance.style.color = distanceColor;
         parenthesis.forEach((elem) => (elem.style.color = gpsParenthesisColor));
+
+        container.style.webkitFontSmoothing = "antialiased";
+        container.style.mozOsxFontSmoothing = "grayscale";
+        container.style.textRendering = "geometricPrecision";
+        container.style.transform = "translateZ(0)";
     } else if (data.type === 'updateConfig') {
         container = document.getElementById('postal-container');
         const postalCode = document.querySelector('.postal-code');
@@ -60,7 +65,6 @@ window.addEventListener('message', (event) => {
             isDragging = false;
         }
     } else if (data.type === 'hide') {
-        // Hide the UI
         const uiElement = document.querySelector('#ui');
         if (uiElement) {
             uiElement.style.display = 'none';
@@ -101,22 +105,27 @@ document.addEventListener('mousemove', (event) => {
         newLeft = Math.min(windowWidth - containerRect.width, newLeft);
         newTop = Math.max(0, newTop);
         newTop = Math.min(windowHeight - containerRect.height, newTop);
-        container.style.left = `${newLeft}px`;
-        container.style.top = `${newTop}px`;
+        container.style.left = `${Math.round(newLeft)}px`;
+        container.style.top = `${Math.round(newTop)}px`;
     }
 });
-
 
 document.addEventListener('mouseup', () => {
     if (isDragging && container) {
         isDragging = false;
         document.body.style.userSelect = '';
+
+        const roundedLeft = Math.round(container.offsetLeft);
+        const roundedTop = Math.round(container.offsetTop);
+        container.style.left = `${roundedLeft}px`;
+        container.style.top = `${roundedTop}px`;
+
         fetch('https://nearest-postal/savePosition', {
             method: 'POST',
             body: JSON.stringify({
                 position: {
-                    left: container.offsetLeft,
-                    top: container.offsetTop,
+                    left: roundedLeft,
+                    top: roundedTop,
                 },
             }),
         });
