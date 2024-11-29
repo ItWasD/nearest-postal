@@ -1,17 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
 #postal-container {
     position: absolute;
     top: 50px;
     left: 50%;
-    background: rgba(0, 0, 0, 0.432);
+    background: rgba(0, 0, 0, 0.75);
     color: white;
     padding: 5px 15px;
     border-radius: 5px;
-    font-family: Arial, sans-serif;
+    font-family: 'Roboto', Arial, sans-serif; /* Clearer font */
     font-size: 12px;
     z-index: 1000;
     cursor: grab;
     text-align: center;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 #postal-container:active {
@@ -20,20 +24,35 @@
 
 .postal {
     font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 .postal-code {
     color: #37b24d;
+    transition: all 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 .distance {
     color: #228be6;
+    transition: all 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 .parenthesis {
     color: #ffffff;
+    transition: all 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 .gps-label {
     color: #ffffff;
+    transition: all 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
