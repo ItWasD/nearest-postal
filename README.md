@@ -1,6 +1,6 @@
 Please if anything read the very bottom of this so you will not have issues using this resource.
 
-This is based off of the original [nearest-postal](https://github.com/DevBlocky/nearest-postal) script as it still functions the same I just made it use less client files and added an in game player customizable UI menu with savable setting to player licenses. 
+This is based off of the Original [nearest-postal](https://github.com/DevBlocky/nearest-postal) by DevBlocky script as it still functions the same I just made it use less client files and added an in game player customizable UI menu with savable setting to player licenses. 
 
 If you are a developer and are making a new postal map use the Original [nearest-postal](https://github.com/DevBlocky/nearest-postal) as I have removed the main files to make a new postal map that he has implemented into his script. 
 
